@@ -1,4 +1,4 @@
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { ArrowDown, ArrowUpRight } from 'lucide-react'
 import { hero, profile } from '../content/portfolio.js'
 import { EASE, stagger, fadeUp, lineMask } from '../lib/motion.js'
@@ -8,6 +8,7 @@ import Sparkle from './Sparkle.jsx'
 
 export default function Hero() {
   const { scrollTo } = useLenis()
+  const reduce = useReducedMotion()
   const lines = hero.headline.split('\n')
 
   return (
@@ -21,8 +22,8 @@ export default function Hero() {
         transition={{ duration: 2, ease: EASE, delay: 0.3 }}
       >
         <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 90, ease: 'linear', repeat: Infinity }}
+          animate={reduce ? undefined : { rotate: 360 }}
+          transition={reduce ? undefined : { duration: 90, ease: 'linear', repeat: Infinity }}
           style={{ color: 'rgba(200,169,106,0.07)' }}
         >
           <Sparkle size={520} />
@@ -96,8 +97,8 @@ export default function Hero() {
           Scroll
         </span>
         <motion.span
-          animate={{ y: [0, 7, 0] }}
-          transition={{ duration: 1.8, ease: 'easeInOut', repeat: Infinity }}
+          animate={reduce ? undefined : { y: [0, 7, 0] }}
+          transition={reduce ? undefined : { duration: 1.8, ease: 'easeInOut', repeat: Infinity }}
         >
           <ArrowDown size={16} strokeWidth={1.25} />
         </motion.span>

@@ -35,7 +35,8 @@ export default function Cursor() {
       window.removeEventListener('mouseover', over)
       document.body.classList.remove('has-cursor')
     }
-  }, [reduce, x, y])
+    // x, y are stable motion values mutated via .set() in handlers, not read here
+  }, [reduce])
 
   if (!enabled) return null
 

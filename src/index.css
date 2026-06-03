@@ -16,7 +16,7 @@
   /* text */
   --text: #edeae3;
   --text-dim: #9c988e;
-  --text-faint: #6b675f;
+  --text-faint: #837e74; /* ~5.2:1 on --bg — passes WCAG AA for small text */
 
   /* accent — champagne gold */
   --gold: #c8a96a;
@@ -71,7 +71,7 @@ body {
   color: var(--text);
   font-family: var(--font-sans);
   font-weight: 400;
-  font-size: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
+  font-size: clamp(1rem, 0.97rem + 0.125vw, 1.0625rem);
   line-height: 1.65;
   letter-spacing: 0.005em;
   -webkit-font-smoothing: antialiased;

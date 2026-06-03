@@ -28,7 +28,13 @@ export default function Nav() {
 
   useEffect(() => {
     document.documentElement.style.overflow = open ? 'hidden' : ''
+    if (!open) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
     return () => {
+      window.removeEventListener('keydown', onKey)
       document.documentElement.style.overflow = ''
     }
   }, [open])
