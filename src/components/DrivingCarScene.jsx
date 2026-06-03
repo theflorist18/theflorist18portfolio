@@ -1,16 +1,42 @@
-import { useMemo, useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { useEffect, useMemo, useRef } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 
 const lerp = THREE.MathUtils.lerp
 const clamp = THREE.MathUtils.clamp
 const MODEL_URL = import.meta.env.BASE_URL + 'models/porsche-911.glb'
-
 const easeOut = (t) => 1 - Math.pow(1 - t, 3)
 const easeIn = (t) => t * t * t
 
-// ---------- soft smoke sprite texture (procedural, no asset) ----------
+// ---- top-down drive path (world units on the y=0 ground plane) ----
+// camera looks down from above-behind: -z = far (screen top), +z = near (screen bottom)
+const Z_TOP = -4.6
+const Z_BOT = 6.5
+const Z_EXIT = 13
+const X_AMP = 3.6
+const X_ENTER = 11
+const WAVES = 2.6
+const CAR_SCALE = 6.1
+const YAW_OFFSET = Math.PI // tuned so the nose leads the travel direction
+
+const weaveX = (s) => Math.sin(s * Math.PI * WAVES) * X_AMP
+const zAt = (s) => lerp(Z_TOP, Z_BOT, s)
+
+function pathAt(p) {
+  if (p < 0.1) {
+    const k = easeOut(clamp(p / 0.1, 0, 1))
+    return { x: lerp(X_ENTER, weaveX(0), k), z: lerp(Z_TOP - 3, zAt(0), k), sc: lerp(0.8, 1, k) }
+  }
+  if (p < 0.85) {
+    const s = (p - 0.1) / 0.75
+    return { x: weaveX(s), z: zAt(s), sc: 1 }
+  }
+  const s = clamp((p - 0.85) / 0.15, 0, 1)
+  return { x: lerp(weaveX(1), 0, s), z: lerp(zAt(1), Z_EXIT, easeIn(s)), sc: lerp(1, 0.92, s) }
+}
+
+// ---------- procedural soft smoke texture ----------
 function smokeTexture() {
   const s = 64
   const c = document.createElement('canvas')
@@ -27,18 +53,19 @@ function smokeTexture() {
   return tex
 }
 
-const SMOKE_N = 120
+const SMOKE_N = 110
 
 function Rig({ progress }) {
   const car = useRef(null)
+  const invalidate = useThree((s) => s.invalidate)
   const { scene } = useGLTF(MODEL_URL)
 
-  // normalize model to unit length, recenter, and tame heavy glass materials
   const fit = useMemo(() => {
     scene.traverse((o) => {
       if (o.isMesh) {
         o.castShadow = false
         o.receiveShadow = false
+        o.frustumCulled = false
         const m = o.material
         if (m && m.transmission > 0) {
           m.transmission = 0
@@ -59,7 +86,7 @@ function Rig({ progress }) {
     return { s, offset: [-center.x, -center.y, -center.z] }
   }, [scene])
 
-  // ---- smoke pool ----
+  // ---- smoke pool (world space) ----
   const smoke = useMemo(() => {
     const life = new Float32Array(SMOKE_N)
     for (let i = 0; i < SMOKE_N; i++) life[i] = 1
@@ -86,95 +113,79 @@ function Rig({ progress }) {
       transparent: true,
       depthWrite: false,
       depthTest: false,
-      uniforms: { uTex: { value: tex }, uSize: { value: 130 } },
+      uniforms: { uTex: { value: tex }, uSize: { value: 42 } },
       vertexShader: `
         attribute float aLife;
         varying float vLife;
         uniform float uSize;
         void main(){
           vLife = aLife;
-          vec4 mv = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = uSize * (0.4 + aLife * 2.0) * (1.0 / -mv.z);
-          gl_Position = projectionMatrix * mv;
+          // orthographic: constant pixel size that grows with the puff's life
+          gl_PointSize = uSize * (0.5 + aLife * 2.2);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }`,
       fragmentShader: `
         uniform sampler2D uTex;
         varying float vLife;
         void main(){
-          float a = texture2D(uTex, gl_PointCoord).a;
-          a *= (1.0 - vLife) * 0.6;
+          float a = texture2D(uTex, gl_PointCoord).a * (1.0 - vLife) * 0.6;
           if (a < 0.01) discard;
           gl_FragColor = vec4(vec3(0.76, 0.74, 0.69), a);
         }`,
     })
   }, [])
 
-  const emit = (x, y, intensity) => {
-    const count = Math.min(8, Math.round(intensity))
-    for (let k = 0; k < count; k++) {
-      smoke.seed = (smoke.seed + 1) % SMOKE_N
-      const i = smoke.seed
-      smoke.pos[i * 3] = x + (Math.random() - 0.5) * 0.4
-      smoke.pos[i * 3 + 1] = y + (Math.random() - 0.5) * 0.3
-      smoke.pos[i * 3 + 2] = -0.3 - Math.random() * 0.5
-      smoke.vel[i * 3] = (Math.random() - 0.5) * 0.5
-      smoke.vel[i * 3 + 1] = 0.25 + Math.random() * 0.5 // drift up -> trails behind a descending car
-      smoke.vel[i * 3 + 2] = -0.1 - Math.random() * 0.3
-      smoke.age[i] = 0
-      smoke.max[i] = 1.3 + Math.random() * 1.1
-      smoke.life[i] = 0
-    }
+  const spawn = (x, z, rx, rz) => {
+    smoke.seed = (smoke.seed + 1) % SMOKE_N
+    const i = smoke.seed
+    smoke.pos[i * 3] = x + (Math.random() - 0.5) * 0.5
+    smoke.pos[i * 3 + 1] = 0.15 + Math.random() * 0.2
+    smoke.pos[i * 3 + 2] = z + (Math.random() - 0.5) * 0.5
+    smoke.vel[i * 3] = rx * 1.1 + (Math.random() - 0.5) * 0.6
+    smoke.vel[i * 3 + 1] = 0.2 + Math.random() * 0.25
+    smoke.vel[i * 3 + 2] = rz * 1.1 + (Math.random() - 0.5) * 0.6
+    smoke.age[i] = 0
+    smoke.max[i] = 1.2 + Math.random() * 1.0
+    smoke.life[i] = 0
   }
 
   const prev = useRef(0)
+  const tail = useRef(0)
 
-  useFrame((state, dt) => {
+  // Demand rendering: only render while the scroll position is changing
+  // (plus a short tail so the smoke can settle). No idle GPU usage.
+  useEffect(() => {
+    invalidate()
+    const unsub = progress.on('change', () => {
+      tail.current = 80
+      invalidate()
+    })
+    return unsub
+  }, [progress, invalidate])
+
+  useFrame((state, delta) => {
     if (!car.current) return
-    const vp = state.viewport
-    const halfW = vp.width / 2
-    const halfH = vp.height / 2
+    const dt = Math.min(delta, 0.05)
     const p = progress && progress.get ? progress.get() : 0
-    const t = state.clock.elapsedTime
+    const pos = pathAt(p)
+    const ahead = pathAt(Math.min(p + 0.004, 1))
+    let dx = ahead.x - pos.x
+    let dz = ahead.z - pos.z
+    const dl = Math.hypot(dx, dz) || 1
+    dx /= dl
+    dz /= dl
+    const yaw = Math.atan2(dx, dz) + YAW_OFFSET
 
-    const base = vp.width * 0.3 // car ~30% of viewport width
-    const BASE_YAW = -Math.PI / 2 // side / 3-4 view, facing left
+    car.current.position.set(pos.x, 0, pos.z)
+    car.current.rotation.set(p > 0.85 ? -((p - 0.85) / 0.15) * 0.22 : 0, yaw, 0)
+    car.current.scale.setScalar(CAR_SCALE * pos.sc)
 
-    let x, y, yaw, roll = 0, pitch = 0, scaleMul = 1
-
-    if (p < 0.1) {
-      const k = easeOut(clamp(p / 0.1, 0, 1))
-      x = lerp(halfW * 1.55, 0, k)
-      y = halfH * 0.42
-      yaw = BASE_YAW
-      scaleMul = lerp(0.85, 1, k)
-    } else if (p < 0.85) {
-      const s = (p - 0.1) / 0.75
-      const wave = Math.sin(s * Math.PI * 2.6)
-      const dwave = Math.cos(s * Math.PI * 2.6)
-      x = wave * halfW * 0.42
-      y = lerp(halfH * 0.42, -halfH * 0.45, s)
-      yaw = BASE_YAW + dwave * 0.32
-      roll = -dwave * 0.12
-    } else {
-      const s = clamp((p - 0.85) / 0.15, 0, 1)
-      x = lerp(Math.sin(Math.PI * 2.6) * halfW * 0.42, 0, s)
-      y = lerp(-halfH * 0.45, -halfH * 2.3, easeIn(s))
-      yaw = BASE_YAW
-      pitch = s * 0.45
-      scaleMul = lerp(1, 0.7, s)
-    }
-
-    y += Math.sin(t * 1.1) * 0.03
-
-    car.current.position.set(x, y, 0)
-    car.current.rotation.set(pitch, yaw, roll)
-    car.current.scale.setScalar(base * scaleMul)
-
-    // ---- smoke ----
-    const speed = Math.abs(p - prev.current) / Math.max(dt, 0.0001) // progress / sec
+    // smoke trailing behind the car
+    const speed = Math.abs(p - prev.current) / Math.max(dt, 0.0001)
     prev.current = p
     const boost = p > 0.85 ? 6 : 0
-    emit(x, y, speed * 120 + boost + 0.5)
+    const n = Math.min(8, Math.round(speed * 110 + boost))
+    for (let e = 0; e < n; e++) spawn(pos.x - dx * 0.5, pos.z - dz * 0.5, -dx, -dz)
 
     for (let i = 0; i < SMOKE_N; i++) {
       if (smoke.age[i] < smoke.max[i]) {
@@ -189,6 +200,12 @@ function Rig({ progress }) {
     }
     geo.attributes.position.needsUpdate = true
     geo.attributes.aLife.needsUpdate = true
+
+    // keep rendering for a short tail after scrolling stops (smoke fade-out)
+    if (tail.current > 0) {
+      tail.current -= 1
+      invalidate()
+    }
   })
 
   return (
@@ -207,20 +224,27 @@ useGLTF.preload(MODEL_URL)
 export default function DrivingCarScene({ progress }) {
   return (
     <Canvas
-      dpr={[1, 1.5]}
-      camera={{ position: [0, 0, 7], fov: 32 }}
+      frameloop="demand"
+      orthographic
+      dpr={[1, 1.2]}
+      camera={{ position: [0, 16, 6], zoom: 60, near: 0.1, far: 120 }}
+      onCreated={({ camera }) => {
+        // high-angle bird's-eye: looking down at the ground plane
+        camera.lookAt(0, 0, 0)
+        camera.updateProjectionMatrix()
+      }}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       style={{ width: '100%', height: '100%' }}
     >
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[5, 8, 4]} intensity={2.4} color="#fff4df" />
-      <directionalLight position={[-8, 6, -6]} intensity={2.4} color="#ffffff" />
-      <directionalLight position={[-5, 2, 6]} intensity={1.0} color="#c8a96a" />
+      <ambientLight intensity={0.55} />
+      <directionalLight position={[4, 12, 3]} intensity={2.6} color="#fff4df" />
+      <directionalLight position={[-6, 9, -3]} intensity={1.8} color="#ffffff" />
+      <directionalLight position={[2, 8, 7]} intensity={1.0} color="#c8a96a" />
       <Environment resolution={128}>
-        <Lightformer intensity={3.5} position={[0, 5, 1]} rotation={[Math.PI / 2, 0, 0]} scale={[12, 0.8, 1]} color="#ffffff" />
-        <Lightformer intensity={2.4} position={[0, 4, 3]} scale={[10, 3, 1]} color="#fff7e6" />
-        <Lightformer intensity={1.6} position={[-6, 1.5, -2]} scale={[6, 6, 1]} color="#c8a96a" />
-        <Lightformer intensity={1.0} position={[6, 1, -3]} scale={[6, 6, 1]} color="#9fb0c0" />
+        <Lightformer intensity={3.2} position={[0, 6, 1]} rotation={[Math.PI / 2, 0, 0]} scale={[14, 1, 1]} color="#ffffff" />
+        <Lightformer intensity={2.2} position={[0, 5, 4]} scale={[12, 4, 1]} color="#fff7e6" />
+        <Lightformer intensity={1.6} position={[-6, 3, -2]} scale={[6, 6, 1]} color="#c8a96a" />
+        <Lightformer intensity={1.0} position={[6, 3, -3]} scale={[6, 6, 1]} color="#9fb0c0" />
       </Environment>
       <Rig progress={progress} />
     </Canvas>

@@ -74,18 +74,22 @@ To use real media:
   autoplay screen-recording in `src/pages/CaseStudy.jsx`.
 
 ### The 3D car (full-page background)
-A real-time 3D **Porsche 911 (930 Turbo)** drives in from the right, slaloms down the page,
-and speeds off the bottom with smoke — a **fixed background layer behind all content**,
-driven by whole-page scroll. Rendered with `react-three-fiber`; studio lighting is built
-from `Lightformer` cards (no HDR file) and the smoke is a procedural GPU particle system.
+A real-time 3D **Porsche 911 (930 Turbo)**, seen in a **top-down bird's-eye view**, drives in
+from the right, slaloms down the page (steering into each turn), and speeds off the bottom
+with smoke — a **fixed background layer behind all content**, driven by whole-page scroll.
+Rendered with `react-three-fiber` (orthographic camera); studio lighting is built from
+`Lightformer` cards (no HDR file) and the smoke is a procedural GPU particle system.
 
 - Files: `src/components/DrivingCar.jsx` (fixed layer + gating) and `DrivingCarScene.jsx`
   (model + choreography + smoke). Rendered **only on the home route**, behind the content
   (`pointer-events: none`), with page content lifted above it (`Page.jsx` uses `z-10`).
-- Model: `public/models/porsche-911.glb`. It's **compressed** (textures → WebP @2048,
-  geometry quantized — no runtime decoder needed): 21.9 MB → **4.7 MB**.
-- Loaded lazily in its own JS chunk; **disabled** for reduced-motion / no-WebGL / low-power
-  (Save-Data, deviceMemory < 4) devices, with a WebGL error boundary. First paint is never blocked.
+- Model: `public/models/porsche-911.glb`. Compressed (textures → WebP @2048, geometry
+  quantized — no runtime decoder) and **decimated for the background** (150k → ~52k tris):
+  21.9 MB → **2.7 MB**.
+- **Performance:** renders **on-demand** (only while scrolling, plus a short tail for the
+  smoke) at capped DPR — no idle GPU usage. Lazy-loaded in its own chunk; **disabled** for
+  reduced-motion / no-WebGL / low-power (Save-Data, deviceMemory < 4) devices, with a WebGL
+  error boundary. First paint is never blocked.
 - **To swap the model:** drop a new `.glb`, compress it, and overwrite the file:
   ```bash
   npx @gltf-transform/cli optimize new.glb public/models/porsche-911.glb \
