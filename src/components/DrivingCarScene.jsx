@@ -17,8 +17,8 @@ const Z_EXIT = 13
 const X_AMP = 3.6
 const X_ENTER = 11
 const WAVES = 2.6
-const CAR_SCALE = 6.1
-const YAW_OFFSET = Math.PI // tuned so the nose leads the travel direction
+const CAR_SCALE = 8.0
+const YAW_OFFSET = 0 // nose leads the travel direction
 
 const weaveX = (s) => Math.sin(s * Math.PI * WAVES) * X_AMP
 const zAt = (s) => lerp(Z_TOP, Z_BOT, s)
@@ -36,19 +36,34 @@ function pathAt(p) {
   return { x: lerp(weaveX(1), 0, s), z: lerp(zAt(1), Z_EXIT, easeIn(s)), sc: lerp(1, 0.92, s) }
 }
 
-// ---------- procedural soft smoke texture ----------
+// ---------- procedural RETRO BLOCKY smoke texture ----------
+// Low-res puff drawn on a tiny grid + NEAREST filtering = chunky pixel blocks.
 function smokeTexture() {
-  const s = 64
+  const N = 9
   const c = document.createElement('canvas')
-  c.width = c.height = s
+  c.width = c.height = N
   const ctx = c.getContext('2d')
-  const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2)
-  g.addColorStop(0, 'rgba(255,255,255,1)')
-  g.addColorStop(0.45, 'rgba(255,255,255,0.4)')
-  g.addColorStop(1, 'rgba(255,255,255,0)')
-  ctx.fillStyle = g
-  ctx.fillRect(0, 0, s, s)
+  const mid = (N - 1) / 2
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      const dx = x - mid
+      const dy = y - mid
+      const d = Math.sqrt(dx * dx + dy * dy) / (N / 2)
+      let a = 0
+      if (d < 0.5) a = 1
+      else if (d < 0.72) a = 0.65
+      else if (d < 0.95) a = 0.3
+      if (a > 0 && (x * 3 + y * 7) % 5 === 0) a *= 0.45 // blocky holes
+      if (a > 0) {
+        ctx.fillStyle = `rgba(255,255,255,${a})`
+        ctx.fillRect(x, y, 1, 1)
+      }
+    }
+  }
   const tex = new THREE.CanvasTexture(c)
+  tex.magFilter = THREE.NearestFilter
+  tex.minFilter = THREE.NearestFilter
+  tex.generateMipmaps = false
   tex.needsUpdate = true
   return tex
 }
@@ -113,24 +128,28 @@ function Rig({ progress }) {
       transparent: true,
       depthWrite: false,
       depthTest: false,
-      uniforms: { uTex: { value: tex }, uSize: { value: 42 } },
+      uniforms: { uTex: { value: tex }, uSize: { value: 56 } },
       vertexShader: `
         attribute float aLife;
         varying float vLife;
         uniform float uSize;
         void main(){
           vLife = aLife;
-          // orthographic: constant pixel size that grows with the puff's life
-          gl_PointSize = uSize * (0.5 + aLife * 2.2);
+          // orthographic: constant pixel size that grows with the puff's life,
+          // snapped to steps so the smoke pops in chunky retro increments
+          float sz = uSize * (0.5 + aLife * 2.2);
+          gl_PointSize = floor(sz / 8.0) * 8.0;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }`,
       fragmentShader: `
         uniform sampler2D uTex;
         varying float vLife;
         void main(){
-          float a = texture2D(uTex, gl_PointCoord).a * (1.0 - vLife) * 0.6;
-          if (a < 0.01) discard;
-          gl_FragColor = vec4(vec3(0.76, 0.74, 0.69), a);
+          float a = texture2D(uTex, gl_PointCoord).a * (1.0 - vLife);
+          a = floor(a * 4.0) / 4.0;   // stepped, retro alpha banding
+          a *= 0.9;
+          if (a < 0.02) discard;
+          gl_FragColor = vec4(vec3(0.80, 0.78, 0.72), a);
         }`,
     })
   }, [])
