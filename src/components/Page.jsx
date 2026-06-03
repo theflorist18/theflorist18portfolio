@@ -8,13 +8,7 @@ const variants = {
 
 export default function Page({ children, className = '' }) {
   return (
-    <motion.main
-      variants={variants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      className={`relative z-10 ${className}`}
-    >
+    <motion.main variants={variants} initial="initial" animate="animate" exit="exit" className={className}>
       {children}
     </motion.main>
   )
