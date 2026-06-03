@@ -73,6 +73,23 @@ To use real media:
 - **Case-study covers/screens:** add a hero image / embedded Figma prototype / muted
   autoplay screen-recording in `src/pages/CaseStudy.jsx`.
 
+### The 3D car ("In motion" section)
+A real-time 3D **Porsche 911 (930 Turbo)** drives across and turns as you scroll, rendered
+with `react-three-fiber` (studio lighting is built from `Lightformer` cards — no HDR file).
+
+- Model: `public/models/porsche-911.glb`. It's **compressed** (textures → WebP @2048,
+  geometry quantized — no runtime decoder needed): 21.9 MB → **4.7 MB**.
+- Loaded lazily in its own JS chunk (`src/components/Car3DScene.jsx`) only when the section
+  nears the viewport, with a static gold line-art fallback (`CarPoster.jsx`) for
+  reduced-motion / no-WebGL / low-power devices. First paint is never blocked.
+- **To swap the model:** drop a new `.glb`, compress it, and overwrite the file:
+  ```bash
+  npx @gltf-transform/cli optimize new.glb public/models/porsche-911.glb \
+    --compress quantize --texture-compress webp --texture-size 2048
+  ```
+  If the new model is oriented/scaled differently, tweak `TARGET_LEN` / `ROT_Y` at the top
+  of `src/components/Car3DScene.jsx` (it auto-centers and ground-aligns otherwise).
+
 ### Social preview image
 `public/og-image.svg` is the source for the link preview. Some platforms (LinkedIn, some
 Slack/iMessage paths) render PNG more reliably than SVG — export `og-image.svg` to a
