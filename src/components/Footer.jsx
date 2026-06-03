@@ -58,6 +58,11 @@ export default function Footer() {
                 </a>
               </li>
               <li>
+                <a href={profile.socials.whatsapp} target="_blank" rel="noopener noreferrer" className="link">
+                  WhatsApp ↗
+                </a>
+              </li>
+              <li>
                 <a href={profile.socials.github} target="_blank" rel="noopener noreferrer" className="link">
                   GitHub ↗
                 </a>

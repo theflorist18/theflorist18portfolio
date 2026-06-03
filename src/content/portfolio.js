@@ -15,8 +15,8 @@ export const profile = {
   // TODO: tweak to your real location / availability line
   location: 'Working remotely · worldwide',
   socials: {
-    // TODO: replace with your real LinkedIn handle
-    linkedin: 'https://www.linkedin.com/in/netsakh',
+    linkedin: 'https://www.linkedin.com/in/netsakh-walewangko-08170325a',
+    whatsapp: 'https://wa.me/6282290747795',
     github: 'https://github.com/theflorist18',
     // Your existing security-research portfolio — cross-linked, kept separate
     security: 'https://theflorist18.github.io/el_portafolio/',

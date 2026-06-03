@@ -21,7 +21,13 @@ export default function Contact() {
 
         <Reveal delay={0.1} className="mt-12 flex flex-col gap-10">
           <Magnetic strength={0.35}>
-            <a href={`mailto:${profile.email}`} className="btn btn--solid" data-cursor>
+            <a
+              href={profile.socials.whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn--solid"
+              data-cursor
+            >
               {contact.ctaLabel}
               <ArrowUpRight size={16} strokeWidth={1.5} />
             </a>
@@ -49,6 +55,9 @@ export default function Contact() {
         <Reveal delay={0.1} className="mt-16 flex flex-wrap gap-x-10 gap-y-4">
           <a href={profile.socials.linkedin} target="_blank" rel="noopener noreferrer" className="link eyebrow">
             LinkedIn ↗
+          </a>
+          <a href={profile.socials.whatsapp} target="_blank" rel="noopener noreferrer" className="link eyebrow">
+            WhatsApp ↗
           </a>
           <a href={profile.socials.github} target="_blank" rel="noopener noreferrer" className="link eyebrow">
             GitHub ↗
