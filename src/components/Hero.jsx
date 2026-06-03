@@ -13,6 +13,12 @@ export default function Hero() {
 
   return (
     <section className="relative min-h-[100svh] flex flex-col justify-center pt-28 pb-16 overflow-hidden">
+      {/* drifting gold aurora — living atmosphere behind the hero */}
+      <div className="hero-aurora" aria-hidden="true">
+        <span className="hero-blob hero-blob-1" />
+        <span className="hero-blob hero-blob-2" />
+      </div>
+
       {/* slow-rotating background sparkle — atmosphere */}
       <motion.div
         aria-hidden="true"
@@ -46,7 +52,7 @@ export default function Hero() {
           <motion.h1 variants={stagger(0.1)} className="display-xl mb-10 md:mb-12">
             {lines.map((line, i) => (
               <span key={i} className="block overflow-hidden pb-[0.05em]">
-                <motion.span variants={lineMask} className="block">
+                <motion.span variants={lineMask} className="block headline-sheen">
                   {line}
                 </motion.span>
               </span>
