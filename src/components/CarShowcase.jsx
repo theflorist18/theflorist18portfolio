@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { Component, lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useScroll, useReducedMotion } from 'motion/react'
 import Reveal from './Reveal.jsx'
 import Sparkle from './Sparkle.jsx'
@@ -6,6 +6,21 @@ import CarPoster from './CarPoster.jsx'
 
 // Heavy 3D libs (three / r3f / drei) load in their own chunk, only when needed.
 const Car3DScene = lazy(() => import('./Car3DScene.jsx'))
+
+// If WebGL fails (context creation error, driver crash), fall back to the poster.
+class CanvasErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { failed: false }
+  }
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+  componentDidCatch() {}
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children
+  }
+}
 
 function canRender3D() {
   if (typeof window === 'undefined') return false
@@ -78,9 +93,11 @@ export default function CarShowcase() {
       {/* stage */}
       <div className="relative w-full h-[58vh] min-h-[360px] max-h-[640px]">
         {use3D ? (
-          <Suspense fallback={<CarPoster subtle />}>
-            {inView ? <Car3DScene progress={scrollYProgress} /> : <CarPoster subtle />}
-          </Suspense>
+          <CanvasErrorBoundary fallback={<CarPoster />}>
+            <Suspense fallback={<CarPoster subtle />}>
+              {inView ? <Car3DScene progress={scrollYProgress} /> : <CarPoster subtle />}
+            </Suspense>
+          </CanvasErrorBoundary>
         ) : (
           <CarPoster />
         )}

@@ -20,6 +20,18 @@ function Porsche({ progress }) {
       if (o.isMesh) {
         o.castShadow = true
         o.receiveShadow = false
+        // Glass/transmission materials need an extra render pass that is very
+        // slow on software WebGL / weak GPUs. Convert them to cheap dark glass
+        // so the car renders fast and reliably everywhere.
+        const m = o.material
+        if (m && m.transmission > 0) {
+          m.transmission = 0
+          m.transparent = false
+          m.color = new THREE.Color('#0a0a0c')
+          m.metalness = 0.2
+          m.roughness = 0.08
+          m.envMapIntensity = 1.6
+        }
       }
     })
     const box = new THREE.Box3().setFromObject(scene)
