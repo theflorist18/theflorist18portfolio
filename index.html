@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+    <meta name="theme-color" content="#0A0A0B" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- Primary meta -->
+    <title>Netsakh Walewangko — Product & UI/UX Designer</title>
+    <meta name="description" content="Netsakh Walewangko is a product and UI/UX designer crafting calm, considered, usable interfaces. Selected work, case studies, and contact." />
+    <meta name="author" content="Netsakh Walewangko" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Netsakh Walewangko" />
+    <meta property="og:title" content="Netsakh Walewangko — Product & UI/UX Designer" />
+    <meta property="og:description" content="Calm, considered, usable interfaces. Selected work and case studies." />
+    <meta property="og:url" content="https://theflorist18.github.io/theflorist18portfolio/" />
+    <meta property="og:image" content="https://theflorist18.github.io/theflorist18portfolio/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Netsakh Walewangko — Product & UI/UX Designer" />
+    <meta name="twitter:description" content="Calm, considered, usable interfaces. Selected work and case studies." />
+    <meta name="twitter:image" content="https://theflorist18.github.io/theflorist18portfolio/og-image.png" />
+
+    <!-- Fonts: Fraunces (display serif) + General Sans (body) — characterful, not the AI defaults -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..500&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=general-sans@300,400,500,600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- GitHub Pages SPA redirect restore (paired with public/404.html).
+         Lets deep links / refresh on sub-pages work without a 404. -->
+    <script type="text/javascript">
+      (function (l) {
+        if (l.search[1] === '/') {
+          var decoded = l.search
+            .slice(1)
+            .split('&')
+            .map(function (s) {
+              return s.replace(/~and~/g, '&')
+            })
+            .join('?')
+          window.history.replaceState(null, null, l.pathname.slice(0, -1) + decoded + l.hash)
+        }
+      })(window.location)
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <div style="padding: 2rem; font-family: serif; color: #edeae3; background: #0a0a0b">
+        This portfolio uses motion and JavaScript. Please enable JavaScript to view it, or
+        reach Netsakh at netsakhwalewangko@gmail.com.
+      </div>
+    </noscript>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
