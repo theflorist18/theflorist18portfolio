@@ -73,22 +73,26 @@ To use real media:
 - **Case-study covers/screens:** add a hero image / embedded Figma prototype / muted
   autoplay screen-recording in `src/pages/CaseStudy.jsx`.
 
-### The 3D car ("In motion" section)
-A real-time 3D **Porsche 911 (930 Turbo)** drives across and turns as you scroll, rendered
-with `react-three-fiber` (studio lighting is built from `Lightformer` cards — no HDR file).
+### The 3D car (full-page background)
+A real-time 3D **Porsche 911 (930 Turbo)** drives in from the right, slaloms down the page,
+and speeds off the bottom with smoke — a **fixed background layer behind all content**,
+driven by whole-page scroll. Rendered with `react-three-fiber`; studio lighting is built
+from `Lightformer` cards (no HDR file) and the smoke is a procedural GPU particle system.
 
+- Files: `src/components/DrivingCar.jsx` (fixed layer + gating) and `DrivingCarScene.jsx`
+  (model + choreography + smoke). Rendered **only on the home route**, behind the content
+  (`pointer-events: none`), with page content lifted above it (`Page.jsx` uses `z-10`).
 - Model: `public/models/porsche-911.glb`. It's **compressed** (textures → WebP @2048,
   geometry quantized — no runtime decoder needed): 21.9 MB → **4.7 MB**.
-- Loaded lazily in its own JS chunk (`src/components/Car3DScene.jsx`) only when the section
-  nears the viewport, with a static gold line-art fallback (`CarPoster.jsx`) for
-  reduced-motion / no-WebGL / low-power devices. First paint is never blocked.
+- Loaded lazily in its own JS chunk; **disabled** for reduced-motion / no-WebGL / low-power
+  (Save-Data, deviceMemory < 4) devices, with a WebGL error boundary. First paint is never blocked.
 - **To swap the model:** drop a new `.glb`, compress it, and overwrite the file:
   ```bash
   npx @gltf-transform/cli optimize new.glb public/models/porsche-911.glb \
     --compress quantize --texture-compress webp --texture-size 2048
   ```
-  If the new model is oriented/scaled differently, tweak `TARGET_LEN` / `ROT_Y` at the top
-  of `src/components/Car3DScene.jsx` (it auto-centers and ground-aligns otherwise).
+  The scene auto-centers/normalizes any model. To retune the drive path, edit the
+  choreography (`BASE_YAW`, the `p`-phase blocks) in `src/components/DrivingCarScene.jsx`.
 
 ### Social preview image
 `public/og-image.svg` is the source for the link preview. Some platforms (LinkedIn, some

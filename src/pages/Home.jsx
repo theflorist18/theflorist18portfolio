@@ -4,7 +4,6 @@ import Page from '../components/Page.jsx'
 import Hero from '../components/Hero.jsx'
 import Marquee from '../components/Marquee.jsx'
 import Work from '../components/Work.jsx'
-import CarShowcase from '../components/CarShowcase.jsx'
 import About from '../components/About.jsx'
 import Contact from '../components/Contact.jsx'
 import Footer from '../components/Footer.jsx'
@@ -31,7 +30,6 @@ export default function Home() {
       <Hero />
       <Marquee />
       <Work />
-      <CarShowcase />
       <About />
       <Contact />
       <Footer />
